@@ -457,7 +457,11 @@ const menuH = () =>
   `<div class="center"><h1 style="font-size:64px;margin:0">11</h1><p>Карточная игра для 4 игроков: вы и партнёр против двух ботов. Играем до 11 очков.</p><button data-a="play">ИГРАТЬ</button><button class="alt" data-a="rules">ПРАВИЛА</button><button class="alt" data-a="set">НАСТРОЙКИ</button></div>`;
 
 const rulesH = () =>
-  `<div class="panel" style="text-align:left;line-height:1.5"><h2>Правила</h2><p>4 игрока, команды 1+3 и 2+4. Раздача: по 4 карты каждому и 4 открытые на стол; затем ещё два раза по 4 карты (на стол ничего не кладётся). Ходите по часовой стрелке.</p><p><b>A–10</b> (A=1): сыгранная карта вместе с любыми картами стола должна давать 11 — их вы забираете (вместе с сыгранной). Вы вольны сыграть любую карту, но если с сыгранной картой взятие возможно, его нужно сделать. Нет взятия — карта остаётся на столе.<br><b>Q</b> забирает только Q, <b>K</b> только K. <b>J</b> забирает со стола всё, кроме Q и K.</p><p>После последней карты остаток стола получает команда, сделавшая последнее взятие.</p><p><b>Очки раздачи (макс. 5):</b> большинство карт +2 (при равенстве 26:26 — по +1 каждой команде), большинство треф +1 (при равенстве никому), 2♣ +1, 10♦ +1. Матч — до 11 очков.</p><button data-a="back">Назад</button></div>`;
+  `<div class="panel" style="text-align:left;line-height:1.5"><h2>Правила</h2>
+  <h3>Краткое описание</h3><p>Играют 4 человека: две команды по 2 игрока, места 1 и 3 против 2 и 4. Каждому раздают по 4 карты; при первой раздаче ещё 4 карты открывают на столе. Когда карты в руках заканчиваются, игрокам раздают ещё по 4 карты два раза; на стол их не кладут. Цель — набирать очки, забирая карты со стола.</p>
+  <h3>Как забрать карты</h3><ul><li>Карты, сумма значений которых равна 11. Например: 4+7 или 2+5+4. Туз считается за 1. Если взятие возможно, его нужно сделать; иначе сыгранная карта остаётся на столе.</li><li><b>Валет</b> забирает все карты со стола, кроме дам и королей. Он также может забрать другого валета. Если подходящих карт нет, валет остаётся на столе.</li><li><b>Король</b> забирает короля, <b>дама</b> — даму.</li></ul>
+  <h3>Как заработать очки</h3><p>За раздачу команда может получить до 5 очков:</p><ul><li>Большинство карт из 52 — 2 очка. Если карт поровну, каждая команда получает по 1 очку.</li><li>Больше треф — 1 очко. При равенстве очко не получает никто.</li><li>Двойка треф — 1 очко команде, которая её забрала.</li><li>Десятка бубен — 1 очко команде, которая её забрала.</li></ul><p>Побеждает команда, первой набравшая 11 очков.</p>
+  <h3>Последние карты</h3><p>Если после окончания карт на руках на столе остались карты, их забирает команда, которая последней взяла карты со стола.</p><button data-a="back">Назад</button></div>`;
 
 const setH = () =>
   `<div class="panel center"><h2>Настройки</h2><label>Скорость анимаций <select data-a="speed"><option value="slow" ${S.speed === "slow" ? "selected" : ""}>медленно</option><option value="normal" ${S.speed === "normal" ? "selected" : ""}>обычно</option><option value="fast" ${S.speed === "fast" ? "selected" : ""}>быстро</option></select></label>
@@ -519,12 +523,10 @@ function gameH() {
             : "Ваш ход — выберите карту"
         : `${NAMES[g.cur]} думает…`;
 
-  const b0 = g.banks[0];
-  const b1 = g.banks[1];
-  const cl = (b) => b.filter((c) => c.s === "♣").length;
+  const bankTile = (i, name) => `<div class="bank b${i}" data-bank="${i}">${name}<span class="bank-hidden">Итог после раздачи</span></div>`;
 
   return `<div class="hud panel"><div class="meta">Раздача ${g.round}<br>Колода: ${g.deck.length}</div><div class="score"><span class="t0">Вы <b>${g.score[0]}</b></span>:<span class="t1"><b>${g.score[1]}</b> Соперники</span></div>
-  <div class="banks"><a href="#" class="bank b0 ${ui.bump === 0 ? "bump" : ""}" data-a="bank0" data-bank="0">Ваш банк<b>${b0.length}</b>♣ ${cl(b0)}</a><a href="#" class="bank b1 ${ui.bump === 1 ? "bump" : ""}" data-a="bank1" data-bank="1">Банк соперников<b>${b1.length}</b>♣ ${cl(b1)}</a></div></div>
+  <div class="banks">${bankTile(0, "Ваш банк")}${bankTile(1, "Банк соперников")}</div></div>
   <div class="row">${seatH(2)}</div><div class="mid">${seatH(1)}<div class="table">${tc || '<i style="color:#fff9">стол пуст</i>'}</div>${seatH(3)}</div>
   <div class="msg"><div>${ui.log}</div><b>${st}</b></div>${ctl}
   <div class="row me">${hand}</div>
@@ -541,10 +543,43 @@ function endH() {
   const r = g.result;
   const Y = (x) => (x ? "Да" : "Нет");
   const blk = (t, n, x) =>
-    `<div><h4 class="t${t}">${n}</h4>Карт: ${g.banks[t].length}<br>Треф: ${g.banks[t].filter((c) => c.s === "♣").length}<br>2♣: ${Y(x.twoOfClubs)}<br>10♦: ${Y(x.tenOfDiamonds)}<br><b>Очки: +${x.total}</b></div>`;
+    `<div><h4 class="t${t}">${n}</h4>Карт: <b class="count-value" data-count-to="${g.banks[t].length}">0</b><br>Треф: <b class="count-value" data-count-to="${g.banks[t].filter((c) => c.s === "♣").length}" data-count-delay="160">0</b><br>2♣: ${Y(x.twoOfClubs)}<br>10♦: ${Y(x.tenOfDiamonds)}<br><b>Очки: +${x.total}</b></div>`;
 
   return `<div class="ov"><div class="panel center"><h2>РАЗДАЧА ЗАВЕРШЕНА</h2><div class="cols">${blk(0, "Ваша команда", r.teamA)}${blk(1, "Соперники", r.teamB)}</div><p>Остаток стола (${g.leftover}) — команде последнего взятия.<br><b>Общий счёт: ${g.score[0]} : ${g.score[1]}</b></p>
   ${g.over !== null ? `<h2>${g.over === 0 ? "ПОБЕДА!" : "ПОРАЖЕНИЕ"}</h2><p>${g.over === 0 ? "Команда игрока" : "Команда ботов"} набрала 11 очков.</p><button data-a="play">Новый матч</button>` : `<button data-a="next">Следующая раздача</button>`}</div></div>`;
+}
+
+function animateRoundCounts(id) {
+  const nodes = Array.from(document.querySelectorAll("[data-count-to]"));
+  const started = performance.now();
+  const duration = 1100 * K();
+  const schedule = (callback) =>
+    document.visibilityState === "hidden"
+      ? setTimeout(() => callback(performance.now()), 80)
+      : requestAnimationFrame(callback);
+
+  function tick(now) {
+    if (id !== gid || g.phase !== "end") {
+      return;
+    }
+
+    let complete = true;
+
+    nodes.forEach((node) => {
+      const target = Number(node.dataset.countTo);
+      const elapsed = now - started - Number(node.dataset.countDelay || 0);
+      const progress = Math.max(0, Math.min(1, elapsed / duration));
+      const eased = 1 - Math.pow(1 - progress, 3);
+      node.textContent = Math.floor(target * eased);
+      complete &&= progress === 1;
+    });
+
+    if (!complete) {
+      schedule(tick);
+    }
+  }
+
+  schedule(tick);
 }
 
 async function doMove(p, card, cap) {
@@ -664,6 +699,10 @@ async function step() {
   if (id === gid) {
     ui.busy = false;
     render();
+
+    if (g.phase === "end") {
+      animateRoundCounts(id);
+    }
   }
 }
 
